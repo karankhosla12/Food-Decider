@@ -11,9 +11,7 @@
     <button onclick="describeImage()">Describe Image</button>
     <div id="result"></div>
 
-    <script type="module">
-        import { OpenAI } from "openai";
-
+    <script>
         async function describeImage() {
             const imageInput = document.getElementById('imageInput');
             if (imageInput.files.length === 0) {
@@ -28,39 +26,37 @@
                 const base64String = event.target.result.split(',')[1]; // Get base64 data only
 
                 // Set up the API client
-                const client = new OpenAI({
-                    baseURL: "https://api-inference.huggingface.co/v1/",
-                    apiKey: "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" // Replace with your API key
-                });
-
                 try {
-                    // Send the request to the model
-                    const chatCompletion = await client.chat.completions.create({
-                        model: "meta-llama/Llama-3.2-11B-Vision-Instruct",
-                        messages: [
-                            {
-                                role: "user",
-                                content: [
-                                    {
-                                        type: "text",
-                                        text: "Describe this image in one sentence."
-                                    },
-                                    {
-                                        type: "image",
-                                        image: {
-                                            data: base64String,
-                                            mime_type: file.type
-                                        }
+                    const response = await fetch("https://api-inference.huggingface.co/v1/models/meta-llama/Llama-3.2-11B-Vision-Instruct", {
+                        method: "POST",
+                        headers: {
+                            "Authorization": "Bearer hf_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx", // Replace with your API key
+                            "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify({
+                            inputs: [
+                                {
+                                    type: "text",
+                                    text: "Describe this image in one sentence."
+                                },
+                                {
+                                    type: "image",
+                                    image: {
+                                        data: base64String,
+                                        mime_type: file.type
                                     }
-                                ]
-                            }
-                        ],
-                        max_tokens: 500
+                                }
+                            ],
+                            max_tokens: 500
+                        })
                     });
 
-                    // Display the response
-                    document.getElementById('result').innerText = chatCompletion.choices[0].message.content;
+                    if (!response.ok) {
+                        throw new Error('Error in API request: ' + response.statusText);
+                    }
 
+                    const data = await response.json();
+                    document.getElementById('result').innerText = data.choices[0].message.content;
                 } catch (error) {
                     console.error('Error:', error);
                     alert('An error occurred while processing the image.');
