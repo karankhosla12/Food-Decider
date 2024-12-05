@@ -28,7 +28,8 @@
                         ]
                     }
                 ],
-                max_tokens: 500
+                max_tokens: 500,
+                stream: true
             }));
 
             try {
@@ -44,10 +45,36 @@
                     throw new Error("Failed to fetch response from the API.");
                 }
 
-                const data = await response.json();
-                const message = data?.choices?.[0]?.message?.content;
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder("utf-8");
+                let done = false;
+                let result = "";
 
-                output.textContent = message || "No response from the model.";
+                output.textContent = "";
+
+                while (!done) {
+                    const { value, done: readerDone } = await reader.read();
+                    done = readerDone;
+
+                    if (value) {
+                        const chunk = decoder.decode(value, { stream: true });
+                        result += chunk;
+
+                        try {
+                            const data = JSON.parse(chunk);
+                            const newContent = data?.choices?.[0]?.delta?.content;
+                            if (newContent) {
+                                output.textContent += newContent;
+                            }
+                        } catch (e) {
+                            console.error("Error parsing chunk:", e);
+                        }
+                    }
+                }
+
+                if (!result) {
+                    output.textContent = "No response from the model.";
+                }
             } catch (error) {
                 output.textContent = `Error: ${error.message}`;
             }
