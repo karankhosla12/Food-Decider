@@ -3,39 +3,94 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chat with API</title>
+    <title>Chat Widget</title>
     <style>
         body {
             font-family: Arial, sans-serif;
-            margin: 20px;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background: #f3f4f6;
         }
-        .chat-box {
-            max-width: 600px;
-            margin: 0 auto;
-        }
-        .input-box {
+        .chat-widget {
             width: 100%;
-            padding: 10px;
-            margin-bottom: 10px;
-        }
-        .output {
+            max-width: 400px;
+            background: #fff;
             border: 1px solid #ccc;
-            padding: 10px;
-            background: #f9f9f9;
-            white-space: pre-wrap; /* Preserve formatting */
-            word-wrap: break-word;
+            border-radius: 10px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
         }
-        button {
+        .chat-header {
+            background: #007bff;
+            color: white;
+            text-align: center;
             padding: 10px;
+        }
+        .chat-body {
+            flex: 1;
+            padding: 10px;
+            overflow-y: auto;
+            background: #f9f9f9;
+        }
+        .chat-body p {
+            margin: 5px 0;
+            padding: 8px 10px;
+            border-radius: 8px;
+            display: inline-block;
+            max-width: 80%;
+        }
+        .user-message {
+            background: #007bff;
+            color: white;
+            align-self: flex-end;
+        }
+        .bot-message {
+            background: #e9ecef;
+            color: black;
+            align-self: flex-start;
+        }
+        .chat-footer {
+            display: flex;
+            border-top: 1px solid #ccc;
+            padding: 10px;
+        }
+        .chat-footer input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            margin-right: 10px;
+        }
+        .chat-footer button {
+            padding: 10px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .chat-footer button:hover {
+            background: #0056b3;
         }
     </style>
 </head>
 <body>
-    <div class="chat-box">
-        <h1>Query the API</h1>
-        <input type="text" id="userInput" class="input-box" placeholder="Enter your text here...">
-        <button onclick="queryAPI()">Send</button>
-        <div class="output" id="output">Response will appear here...</div>
+    <div class="chat-widget">
+        <div class="chat-header">
+            Chat Widget
+        </div>
+        <div class="chat-body" id="chatBody">
+            <!-- Messages will appear here -->
+        </div>
+        <div class="chat-footer">
+            <input type="text" id="userInput" placeholder="Type your message...">
+            <button onclick="sendMessage()">Send</button>
+        </div>
     </div>
 
     <script>
@@ -45,7 +100,7 @@
                     "https://api-inference.huggingface.co/models/facebook/bart-large-mnli",
                     {
                         headers: {
-                            Authorization: "Bearer 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", // Replace with your actual API key
+                            Authorization: "Bearer hf_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx", // Replace with your actual API key
                             "Content-Type": "application/json",
                         },
                         method: "POST",
@@ -65,25 +120,38 @@
             }
         }
 
-        async function queryAPI() {
-            const inputText = document.getElementById("userInput").value;
-            if (!inputText.trim()) {
-                document.getElementById("output").textContent = "Please enter some text.";
-                return;
-            }
+        async function sendMessage() {
+            const userInput = document.getElementById("userInput").value;
+            if (!userInput.trim()) return;
 
+            const chatBody = document.getElementById("chatBody");
+
+            // Display user message
+            const userMessage = document.createElement("p");
+            userMessage.textContent = userInput;
+            userMessage.classList.add("user-message");
+            chatBody.appendChild(userMessage);
+
+            chatBody.scrollTop = chatBody.scrollHeight; // Scroll to the bottom
+            document.getElementById("userInput").value = ""; // Clear input field
+
+            // Query API
             const response = await query({
-                "inputs": inputText,
+                "inputs": userInput,
                 "parameters": {
                     "candidate_labels": ["Pizza", "Pasta", "Burger", "Fries"]
                 }
             });
 
-            if (response.error) {
-                document.getElementById("output").textContent = response.error;
-            } else {
-                document.getElementById("output").textContent = JSON.stringify(response, null, 2);
-            }
+            // Display bot response
+            const botMessage = document.createElement("p");
+            botMessage.textContent = response.error 
+                ? "Bot: An error occurred. Please try again." 
+                : `Bot: ${JSON.stringify(response, null, 2)}`;
+            botMessage.classList.add("bot-message");
+            chatBody.appendChild(botMessage);
+
+            chatBody.scrollTop = chatBody.scrollHeight; // Scroll to the bottom
         }
     </script>
 </body>
