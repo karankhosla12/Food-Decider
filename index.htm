@@ -3,97 +3,71 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Image Description Generator</title>
-    <script>
-        async function getDescription() {
-            const prompt = document.getElementById("prompt").value;
-            const imageFile = document.getElementById("imageFile").files[0];
-            const output = document.getElementById("output");
-
-            if (!prompt || !imageFile) {
-                output.textContent = "Please provide both a prompt and an image file.";
-                return;
-            }
-
-            output.textContent = "Processing...";
-
-            const formData = new FormData();
-            formData.append("file", imageFile);
-            formData.append("prompt", JSON.stringify({
-                messages: [
-                    {
-                        role: "user",
-                        content: [
-                            { type: "text", text: prompt }
-                        ]
-                    }
-                ],
-                max_tokens: 500,
-                stream: true
-            }));
-
-            try {
-                const response = await fetch("https://api-inference.huggingface.co/models/meta-llama/Llama-3.2-11B-Vision-Instruct", {
-                    method: "POST",
-                    headers: {
-                        "Authorization": "Bearer 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"
-                    },
-                    body: formData
-                });
-
-                if (!response.ok) {
-                    throw new Error("Failed to fetch response from the API.");
-                }
-
-                const reader = response.body.getReader();
-                const decoder = new TextDecoder("utf-8");
-                let done = false;
-                let result = "";
-
-                output.textContent = "";
-
-                while (!done) {
-                    const { value, done: readerDone } = await reader.read();
-                    done = readerDone;
-
-                    if (value) {
-                        const chunk = decoder.decode(value, { stream: true });
-                        result += chunk;
-
-                        try {
-                            const data = JSON.parse(chunk);
-                            const newContent = data?.choices?.[0]?.delta?.content;
-                            if (newContent) {
-                                output.textContent += newContent;
-                            }
-                        } catch (e) {
-                            console.error("Error parsing chunk:", e);
-                        }
-                    }
-                }
-
-                if (!result) {
-                    output.textContent = "No response from the model.";
-                }
-            } catch (error) {
-                output.textContent = `Error: ${error.message}`;
-            }
-        }
-    </script>
+    <title>Image and Prompt Uploader</title>
 </head>
 <body>
-    <h1>Image Description Generator</h1>
-    <p>Provide a prompt and an image file to get a description of the image.</p>
+    <h1>Upload an Image and Provide a Prompt</h1>
+    <form id="imageForm">
+        <label for="image">Select an image:</label>
+        <input type="file" id="image" name="image" accept="image/*" required><br><br>
+        <label for="prompt">Enter your prompt:</label>
+        <input type="text" id="prompt" name="prompt" required><br><br>
+        <button type="submit">Upload</button>
+    </form>
+    <p id="response"></p>
 
-    <label for="prompt">Prompt:</label><br>
-    <input type="text" id="prompt" placeholder="Describe this image in one sentence." value="Describe this image in one sentence."><br><br>
+    <script>
+        document.getElementById('imageForm').addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const formData = new FormData();
+            const imageFile = document.getElementById('image').files[0];
+            const prompt = document.getElementById('prompt').value;
 
-    <label for="imageFile">Upload Image:</label><br>
-    <input type="file" id="imageFile" accept="image/*"><br><br>
+            if (imageFile) {
+                // Convert the image to a base64 string
+                const reader = new FileReader();
+                reader.onload = async function (e) {
+                    const imageBase64 = e.target.result.split(',')[1]; // Get only the base64 part
 
-    <button onclick="getDescription()">Get Description</button>
+                    try {
+                        // Send the base64 image and prompt to the Hugging Face API
+                        const response = await fetch('https://api-inference.huggingface.co/v1/models/meta-llama/Llama-3.2-11B-Vision-Instruct', {
+                            method: 'POST',
+                            headers: {
+                                'Authorization': 'Bearer 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', // Replace with your actual API key
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                inputs: [
+                                    {
+                                        type: 'text',
+                                        text: prompt
+                                    },
+                                    {
+                                        type: 'image',
+                                        image: imageBase64
+                                    }
+                                ],
+                                options: {
+                                    max_tokens: 500
+                                }
+                            })
+                        });
 
-    <h2>Output:</h2>
-    <p id="output"></p>
+                        const result = await response.json();
+                        if (result.error) {
+                            throw new Error(result.error);
+                        }
+                        document.getElementById('response').innerText = result.choices[0].text || 'No description returned';
+                    } catch (error) {
+                        console.error('Error:', error);
+                        document.getElementById('response').innerText = 'Error processing the image';
+                    }
+                };
+
+                reader.readAsDataURL(imageFile);
+            }
+        });
+    </script>
 </body>
 </html>
