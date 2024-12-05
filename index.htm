@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chat Widget</title>
+    <title>Food Decider</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -30,6 +30,7 @@
             color: white;
             text-align: center;
             padding: 10px;
+            font-size: 18px;
         }
         .chat-body {
             flex: 1;
@@ -56,15 +57,16 @@
         }
         .chat-footer {
             display: flex;
+            flex-direction: column;
             border-top: 1px solid #ccc;
             padding: 10px;
         }
         .chat-footer input {
-            flex: 1;
+            margin-bottom: 5px;
             padding: 10px;
             border: 1px solid #ccc;
             border-radius: 5px;
-            margin-right: 10px;
+            width: calc(100% - 20px);
         }
         .chat-footer button {
             padding: 10px;
@@ -78,28 +80,18 @@
             background: #0056b3;
         }
     </style>
-    <!-- Google Tag Manager -->
-<script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
-new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
-j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
-'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
-})(window,document,'script','dataLayer','GTM-54DXVSK7');</script>
-<!-- End Google Tag Manager -->
 </head>
 <body>
-<!-- Google Tag Manager (noscript) -->
-<noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-54DXVSK7"
-height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
-<!-- End Google Tag Manager (noscript) -->
     <div class="chat-widget">
         <div class="chat-header">
-            Chat Widget
+            Food Decider
         </div>
         <div class="chat-body" id="chatBody">
             <!-- Messages will appear here -->
         </div>
         <div class="chat-footer">
-            <input type="text" id="userInput" placeholder="Type your message...">
+            <input type="text" id="parametersInput" placeholder="Enter categories (e.g., Pizza, Pasta, Burger)">
+            <input type="text" id="userInput" placeholder="What do you feel like eating?">
             <button onclick="sendMessage()">Send</button>
         </div>
     </div>
@@ -132,14 +124,16 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         }
 
         async function sendMessage() {
+            const categoriesInput = document.getElementById("parametersInput").value;
             const userInput = document.getElementById("userInput").value;
-            if (!userInput.trim()) return;
+
+            if (!categoriesInput.trim() || !userInput.trim()) return;
 
             const chatBody = document.getElementById("chatBody");
 
             // Display user message
             const userMessage = document.createElement("p");
-            userMessage.textContent = userInput;
+            userMessage.textContent = `You: ${userInput}`;
             userMessage.classList.add("user-message");
             chatBody.appendChild(userMessage);
 
@@ -147,18 +141,24 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
             document.getElementById("userInput").value = ""; // Clear input field
 
             // Query API
+            const categories = categoriesInput.split(",").map(cat => cat.trim());
             const response = await query({
                 "inputs": userInput,
                 "parameters": {
-                    "candidate_labels": ["Pizza", "Pasta", "Burger", "Fries"]
+                    "candidate_labels": categories
                 }
             });
 
-            // Display bot response
+            // Format bot response
             const botMessage = document.createElement("p");
-            botMessage.textContent = response.error 
-                ? "Bot: An error occurred. Please try again." 
-                : `Bot: ${JSON.stringify(response, null, 2)}`;
+            if (response.error) {
+                botMessage.textContent = "Bot: An error occurred. Please try again.";
+            } else {
+                const formattedResponse = response.labels
+                    .map((label, index) => `${label}: ${(response.scores[index] * 100).toFixed(0)}%`)
+                    .join("\n");
+                botMessage.textContent = `Bot:\n${formattedResponse}`;
+            }
             botMessage.classList.add("bot-message");
             chatBody.appendChild(botMessage);
 
