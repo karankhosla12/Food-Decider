@@ -107,7 +107,7 @@
             responseDiv.style.display = "block";
 
             try {
-                const client = new HfInference("hf_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
+                const client = new HfInference("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");
 
                 const reader = new FileReader();
 
@@ -132,7 +132,7 @@
                     });
 
                     responseDiv.innerHTML = "<strong>Response:</strong> <ul>" +
-                        chatCompletion.choices[0].message.content.split("\n").map(item => `<li>${item}</li>`).join("") +
+                        chatCompletion.choices[0].content.split("\n").map(item => `<li>${item}</li>`).join("") +
                         "</ul>";
                     responseDiv.style.color = "#2e7d32";
                 };
@@ -143,6 +143,8 @@
                 responseDiv.style.color = "#d32f2f";
             }
         }
+
+        window.processImage = processImage;
     </script>
 </body>
 </html>
